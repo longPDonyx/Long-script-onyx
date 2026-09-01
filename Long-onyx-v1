@@ -1,0 +1,410 @@
+-- ================================================
+-- LONGPD ONYX HUB - FLUENT UI (FULL ACTIVE CODES)
+-- Engine: Fluent UI Library (Acrylic Glassmorphism)
+-- Auto Farm Level 1 -> 2800 Max Level Update
+-- ================================================
+
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+
+local Window = Fluent:CreateWindow({
+    Title = "LONGPD ONYX HUB | Max Level 2800",
+    SubTitle = "Maru Transparent Style (Stable)",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 420),
+    Acrylic = true,
+    Theme = "Darker",
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+-- Services
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualUser = game:GetService("VirtualUser")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local CommF = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
+
+-- Config States
+_G.AutoFarmLevel = false
+_G.SelectWeapon = "Melee"
+_G.AutoFarmBone = false
+_G.AutoRandomBone = false
+_G.AutoSoulReaper = false
+_G.AutoCakePrince = false
+_G.AutoDoughKing = false
+_G.AutoYama = false
+_G.AutoTushita = false
+_G.AutoStatsMelee = false
+_G.AutoStatsDefense = false
+_G.AutoStatsSword = false
+_G.AutoStatsGun = false
+_G.AutoStatsFruit = false
+_G.WalkOnWater = false
+_G.TweenSpeed = 250
+
+-- Anti-AFK
+LocalPlayer.Idled:Connect(function()
+    VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    task.wait(1)
+    VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+end)
+
+-- Platform Stand (Bệ đỡ chống rớt)
+local Platform = Instance.new("Part")
+Platform.Size = Vector3.new(10, 1, 10)
+Platform.Anchored = true
+Platform.Transparency = 1
+Platform.CanCollide = true
+Platform.Parent = workspace
+
+-- Safe Flight Engine (Tween Anti-Stuck)
+local currentTween = nil
+local function TweenTo(targetCFrame)
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+        local hrp = char.HumanoidRootPart
+        local dist = (hrp.Position - targetCFrame.Position).Magnitude
+        
+        Platform.CFrame = hrp.CFrame * CFrame.new(0, -3.5, 0)
+        
+        if dist < 15 then 
+            hrp.CFrame = targetCFrame 
+            if currentTween then currentTween:Cancel() end
+            return 
+        end
+        
+        local tweenInfo = TweenInfo.new(dist / _G.TweenSpeed, Enum.EasingStyle.Linear)
+        if currentTween then currentTween:Cancel() end
+        currentTween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
+        currentTween:Play()
+    end
+end
+
+-- NoClip Engine
+RunService.Stepped:Connect(function()
+    if LocalPlayer.Character then
+        for _, v in pairs(LocalPlayer.Character:GetChildren()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
+        end
+    end
+    if _G.WalkOnWater and workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Water") then
+        workspace.Map.Water.CanCollide = true
+    end
+end)
+
+-- Safe Fast Attack (Bypass Anticheat)
+local lastAttack = 0
+local function FastAttack()
+    if tick() - lastAttack >= 0.12 then
+        lastAttack = tick()
+        pcall(function()
+            local Net = ReplicatedStorage:FindFirstChild("Modules") and ReplicatedStorage.Modules:FindFirstChild("Net")
+            if Net and Net:FindFirstChild("RE/RegisterAttack") then
+                Net["RE/RegisterAttack"]:FireServer()
+            end
+            VirtualUser:Button1Down(Vector2.new(500, 500))
+            VirtualUser:Button1Up(Vector2.new(500, 500))
+        end)
+    end
+end
+
+-- Equip Weapon Engine
+local function EquipWeapon(typeStr)
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("Humanoid") then return end
+    for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
+        if item:IsA("Tool") then
+            if (typeStr == "Melee" and item.ToolTip == "Melee") or
+               (typeStr == "Sword" and item.ToolTip == "Sword") or
+               (typeStr == "Fruit" and item.ToolTip == "Blox Fruit") then
+                char.Humanoid:EquipTool(item)
+            end
+        end
+    end
+end
+
+-- AUTO QUEST DATA (LEVEL 1 -> 2800)
+local function GetQuestData()
+    local lvl = LocalPlayer.Data.Level.Value
+    
+    -- SEA 1
+    if lvl < 10 then return "BanditQuest1", 1, "Bandit", CFrame.new(1059, 16, 1548)
+    elseif lvl < 15 then return "JungleQuest", 1, "Monkey", CFrame.new(-1600, 36, 153)
+    elseif lvl < 30 then return "JungleQuest", 2, "Gorilla", CFrame.new(-1600, 36, 153)
+    elseif lvl < 40 then return "BuggyQuest1", 1, "Pirate", CFrame.new(-1140, 4, 3828)
+    elseif lvl < 60 then return "BuggyQuest1", 2, "Brute", CFrame.new(-1140, 4, 3828)
+    elseif lvl < 75 then return "DesertQuest", 1, "Desert Officer", CFrame.new(897, 6, 4388)
+    elseif lvl < 90 then return "SnowQuest", 1, "Snow Bandit", CFrame.new(1385, 87, -1298)
+    elseif lvl < 120 then return "MarineQuest2", 1, "Chief Petty Officer", CFrame.new(-5030, 29, 4325)
+    elseif lvl < 150 then return "SkyQuest", 1, "Sky Bandit", CFrame.new(-4840, 718, -2620)
+    elseif lvl < 190 then return "PrisonerQuest", 1, "Prisoner", CFrame.new(530, 2, 475)
+    elseif lvl < 250 then return "ColosseumQuest", 1, "Toga Warrior", CFrame.new(-1580, 7, 2980)
+    elseif lvl < 300 then return "MagmaQuest", 1, "Military Soldier", CFrame.new(-5310, 12, 8515)
+    elseif lvl < 375 then return "FishmanQuest", 1, "Fishman Warrior", CFrame.new(61120, 18, 1560)
+    elseif lvl < 450 then return "SkyQuest2", 1, "God's Guard", CFrame.new(-7900, 5600, -2280)
+    elseif lvl < 700 then return "CyborgQuest", 1, "Lab Subordinate", CFrame.new(-6140, 15, -5040)
+    
+    -- SEA 2
+    elseif lvl < 725 then return "Area1Quest", 1, "Raider", CFrame.new(-425, 73, 1835)
+    elseif lvl < 775 then return "Area1Quest", 2, "Mercenary", CFrame.new(-425, 73, 1835)
+    elseif lvl < 875 then return "Area2Quest", 1, "Swan Pirate", CFrame.new(915, 120, 1310)
+    elseif lvl < 950 then return "MarineQuest3", 1, "Marine Lieutenant", CFrame.new(-2440, 73, -3215)
+    elseif lvl < 1000 then return "ZombieQuest", 1, "Zombie", CFrame.new(-5495, 48, -795)
+    elseif lvl < 1100 then return "SnowMountainQuest", 1, "Snow Trooper", CFrame.new(605, 400, -5370)
+    elseif lvl < 1250 then return "IceSideQuest", 1, "Lab Subordinate", CFrame.new(-6060, 16, -4905)
+    elseif lvl < 1350 then return "ShipQuest1", 1, "Ship Deckhand", CFrame.new(1030, 125, 32910)
+    elseif lvl < 1425 then return "FrostQuest", 1, "Ice Warrior", CFrame.new(5660, 28, -6480)
+    elseif lvl < 1500 then return "ForgottenQuest", 1, "Sea Soldier", CFrame.new(-3055, 240, -10145)
+    
+    -- SEA 3
+    elseif lvl < 1575 then return "PiratePortQuest", 1, "Pirate Millionaire", CFrame.new(-290, 44, 5580)
+    elseif lvl < 1700 then return "AmazonQuest", 1, "Female Islander", CFrame.new(5830, 52, -1105)
+    elseif lvl < 1800 then return "MarineTreeQuest", 1, "Marine Commodore", CFrame.new(2180, 29, -6740)
+    elseif lvl < 1900 then return "DeepForestIslandQuest", 1, "Jungle Pirate", CFrame.new(-13230, 332, -7625)
+    elseif lvl < 2000 then return "DeepForestIsland2Quest", 1, "Horned Warrior", CFrame.new(-12680, 390, -9900)
+    elseif lvl < 2100 then return "HauntedQuest1", 1, "Reborn Skeleton", CFrame.new(-9480, 142, 5520)
+    elseif lvl < 2200 then return "HauntedQuest2", 1, "Demonic Soul", CFrame.new(-9480, 142, 5520)
+    elseif lvl < 2300 then return "IceCreamIslandQuest", 1, "Ice Cream Chef", CFrame.new(-820, 65, -10965)
+    elseif lvl < 2400 then return "CakeQuest1", 1, "Cookie Crafter", CFrame.new(-2020, 37, -12025)
+    elseif lvl < 2550 then return "CakeQuest2", 1, "Baking Staff", CFrame.new(-1925, 37, -12850)
+    elseif lvl < 2675 then return "TikiQuest1", 1, "Isle Outlaw", CFrame.new(-16535, 55, -1725)
+    elseif lvl < 2750 then return "TikiQuest2", 1, "Island Boy", CFrame.new(-16535, 55, -1725)
+    else return "TikiQuest3", 1, "Sun-kissed Warrior", CFrame.new(-16535, 55, -1725)
+    end
+end
+
+-- MAIN FARM LOOP
+task.spawn(function()
+    while task.wait(0.15) do
+        pcall(function()
+            if _G.AutoFarmLevel then
+                EquipWeapon(_G.SelectWeapon)
+                local qName, qNum, mName, mCFrame = GetQuestData()
+                
+                if not LocalPlayer.PlayerGui.Main.Quest.Visible then
+                    TweenTo(mCFrame)
+                    if (LocalPlayer.Character.HumanoidRootPart.Position - mCFrame.Position).Magnitude < 15 then
+                        CommF:InvokeServer("StartQuest", qName, qNum)
+                    end
+                else
+                    local mob = workspace.Enemies:FindFirstChild(mName)
+                    if mob and mob:FindFirstChild("HumanoidRootPart") and mob.Humanoid.Health > 0 then
+                        TweenTo(mob.HumanoidRootPart.CFrame * CFrame.new(0, 11, 0))
+                        FastAttack()
+                    else
+                        TweenTo(mCFrame)
+                    end
+                end
+            end
+
+            if _G.AutoSoulReaper then
+                local reaper = workspace.Enemies:FindFirstChild("Soul Reaper")
+                if reaper and reaper:FindFirstChild("HumanoidRootPart") and reaper.Humanoid.Health > 0 then
+                    TweenTo(reaper.HumanoidRootPart.CFrame * CFrame.new(0, 11, 0))
+                    FastAttack()
+                end
+            end
+
+            if _G.AutoFarmBone then
+                local boneMob = workspace.Enemies:FindFirstChild("Reborn Skeleton") or workspace.Enemies:FindFirstChild("Living Zombie") or workspace.Enemies:FindFirstChild("Demonic Soul") or workspace.Enemies:FindFirstChild("Posessed Mummy")
+                if boneMob and boneMob:FindFirstChild("HumanoidRootPart") and boneMob.Humanoid.Health > 0 then
+                    TweenTo(boneMob.HumanoidRootPart.CFrame * CFrame.new(0, 11, 0))
+                    FastAttack()
+                else
+                    TweenTo(CFrame.new(-9500, 170, 6000))
+                end
+            end
+
+            if _G.AutoRandomBone then
+                CommF:InvokeServer("Bones", "Buy", 1, 1)
+                task.wait(1)
+            end
+
+            if _G.AutoCakePrince or _G.AutoDoughKing then
+                local boss = workspace.Enemies:FindFirstChild("Cake Prince") or workspace.Enemies:FindFirstChild("Dough King")
+                if boss and boss:FindFirstChild("HumanoidRootPart") and boss.Humanoid.Health > 0 then
+                    TweenTo(boss.HumanoidRootPart.CFrame * CFrame.new(0, 12, 0))
+                    FastAttack()
+                else
+                    local cakeMob = workspace.Enemies:FindFirstChild("Cookie Crafter") or workspace.Enemies:FindFirstChild("Cake Guard") or workspace.Enemies:FindFirstChild("Baking Staff")
+                    if cakeMob and cakeMob:FindFirstChild("HumanoidRootPart") and cakeMob.Humanoid.Health > 0 then
+                        TweenTo(cakeMob.HumanoidRootPart.CFrame * CFrame.new(0, 11, 0))
+                        FastAttack()
+                    else
+                        TweenTo(CFrame.new(-2100, 70, -12200))
+                    end
+                end
+            end
+
+            if _G.AutoYama then
+                local eliteKilled = CommF:InvokeServer("Elites", "Progress") or 0
+                if tonumber(eliteKilled) >= 30 then
+                    TweenTo(CFrame.new(-5256, 15, 9305))
+                    task.wait(1)
+                    if workspace.Map:FindFirstChild("Waterfall") and workspace.Map.Waterfall:FindFirstChild("Secretdoor") then
+                        fireclickdetector(workspace.Map.Waterfall.Secretdoor.Yama.ClickDetector)
+                    end
+                else
+                    local elite = workspace.Enemies:FindFirstChild("Deandre") or workspace.Enemies:FindFirstChild("Diablo") or workspace.Enemies:FindFirstChild("Urban")
+                    if elite and elite:FindFirstChild("HumanoidRootPart") then
+                        TweenTo(elite.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0))
+                        FastAttack()
+                    end
+                end
+            end
+
+            if _G.AutoTushita then
+                local longma = workspace.Enemies:FindFirstChild("Longma")
+                if longma and longma:FindFirstChild("HumanoidRootPart") and longma.Humanoid.Health > 0 then
+                    TweenTo(longma.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0))
+                    FastAttack()
+                else
+                    local torchPositions = {
+                        CFrame.new(-13480, 330, -7930), CFrame.new(-13150, 390, -7720),
+                        CFrame.new(-12800, 510, -7100), CFrame.new(-12550, 430, -6100),
+                        CFrame.new(-12130, 340, -6480)
+                    }
+                    for _, pos in ipairs(torchPositions) do
+                        TweenTo(pos)
+                        task.wait(0.8)
+                    end
+                    TweenTo(CFrame.new(-5030, 315, -9500))
+                end
+            end
+        end)
+    end
+end)
+
+-- AUTO STATS LOOP
+task.spawn(function()
+    while task.wait(0.5) do
+        pcall(function()
+            if _G.AutoStatsMelee then CommF:InvokeServer("AddPoint", "Melee", 3) end
+            if _G.AutoStatsDefense then CommF:InvokeServer("AddPoint", "Defense", 3) end
+            if _G.AutoStatsSword then CommF:InvokeServer("AddPoint", "Sword", 3) end
+            if _G.AutoStatsGun then CommF:InvokeServer("AddPoint", "Gun", 3) end
+            if _G.AutoStatsFruit then CommF:InvokeServer("AddPoint", "Demon Fruit", 3) end
+        end)
+    end
+end)
+
+-- ================================================
+-- FLUENT UI TABS & CONTROLS SETUP
+-- ================================================
+
+local Tabs = {
+    Status = Window:AddTab({ Title = "Status Check", Icon = "info" }),
+    Main = Window:AddTab({ Title = "Main Farm", Icon = "sword" }),
+    Haunted = Window:AddTab({ Title = "Haunted Castle", Icon = "ghost" }),
+    Cake = Window:AddTab({ Title = "Cake Island", Icon = "cake" }),
+    Mythic = Window:AddTab({ Title = "Mythic Swords", Icon = "shield" }),
+    Stats = Window:AddTab({ Title = "Auto Stats", Icon = "plus-circle" }),
+    Teleport = Window:AddTab({ Title = "Teleport", Icon = "map-pin" }),
+    Shop = Window:AddTab({ Title = "Shop Engine", Icon = "shopping-cart" }),
+    Misc = Window:AddTab({ Title = "Misc Settings", Icon = "settings" })
+}
+
+-- Tab: Status Check
+Tabs.Status:AddSection("Character Status")
+local ParagraphLvl = Tabs.Status:AddParagraph({ Title = "Current Level", Content = "Loading..." })
+local ParagraphElite = Tabs.Status:AddParagraph({ Title = "Elite Killed Progress", Content = "Loading..." })
+
+task.spawn(function()
+    while task.wait(1.5) do
+        pcall(function()
+            local lvl = tostring(LocalPlayer.Data.Level.Value)
+            local elite = tostring(CommF:InvokeServer("Elites", "Progress") or 0) .. " / 30"
+            ParagraphLvl:SetDesc(lvl)
+            ParagraphElite:SetDesc(elite)
+        end)
+    end
+end)
+
+-- Tab: Main Farm
+Tabs.Main:AddSection("Farm Level Auto Quest")
+Tabs.Main:AddToggle("AutoFarmLevel", { Title = "Auto Farm Level (1 - 2800)", Default = false, Callback = function(v) _G.AutoFarmLevel = v end })
+Tabs.Main:AddDropdown("SelectWeapon", { Title = "Select Weapon", Options = {"Melee", "Sword", "Fruit"}, Default = "Melee", Callback = function(v) _G.SelectWeapon = v end })
+
+-- Tab: Haunted Castle
+Tabs.Haunted:AddSection("Bones & Soul Reaper")
+Tabs.Haunted:AddToggle("AutoFarmBone", { Title = "Auto Farm Bones", Default = false, Callback = function(v) _G.AutoFarmBone = v end })
+Tabs.Haunted:AddToggle("AutoRandomBone", { Title = "Auto Random Bone", Default = false, Callback = function(v) _G.AutoRandomBone = v end })
+Tabs.Haunted:AddToggle("AutoSoulReaper", { Title = "Auto Soul Reaper", Default = false, Callback = function(v) _G.AutoSoulReaper = v end })
+
+-- Tab: Cake Island
+Tabs.Cake:AddSection("Cake Prince & Dough King")
+Tabs.Cake:AddToggle("AutoCakePrince", { Title = "Auto Cake Prince", Default = false, Callback = function(v) _G.AutoCakePrince = v end })
+Tabs.Cake:AddToggle("AutoDoughKing", { Title = "Auto Dough King", Default = false, Callback = function(v) _G.AutoDoughKing = v end })
+
+-- Tab: Mythic Swords
+Tabs.Mythic:AddSection("Yama & Tushita Quest")
+Tabs.Mythic:AddToggle("AutoYama", { Title = "Auto Yama", Default = false, Callback = function(v) _G.AutoYama = v end })
+Tabs.Mythic:AddToggle("AutoTushita", { Title = "Auto Tushita", Default = false, Callback = function(v) _G.AutoTushita = v end })
+
+-- Tab: Auto Stats
+Tabs.Stats:AddSection("Upgrade Points")
+Tabs.Stats:AddToggle("AutoStatsMelee", { Title = "Auto Melee", Default = false, Callback = function(v) _G.AutoStatsMelee = v end })
+Tabs.Stats:AddToggle("AutoStatsDefense", { Title = "Auto Defense", Default = false, Callback = function(v) _G.AutoStatsDefense = v end })
+Tabs.Stats:AddToggle("AutoStatsSword", { Title = "Auto Sword", Default = false, Callback = function(v) _G.AutoStatsSword = v end })
+Tabs.Stats:AddToggle("AutoStatsGun", { Title = "Auto Gun", Default = false, Callback = function(v) _G.AutoStatsGun = v end })
+Tabs.Stats:AddToggle("AutoStatsFruit", { Title = "Auto Fruit", Default = false, Callback = function(v) _G.AutoStatsFruit = v end })
+
+-- Tab: Teleport
+Tabs.Teleport:AddSection("World Travel")
+Tabs.Teleport:AddButton({ Title = "Travel Sea 1", Callback = function() CommF:InvokeServer("TravelMain") end })
+Tabs.Teleport:AddButton({ Title = "Travel Sea 2", Callback = function() CommF:InvokeServer("TravelDressrosa") end })
+Tabs.Teleport:AddButton({ Title = "Travel Sea 3", Callback = function() CommF:InvokeServer("TravelZou") end })
+
+-- Tab: Shop
+Tabs.Shop:AddSection("Buy / Reset")
+Tabs.Shop:AddButton({ Title = "Random Fruit (Beli)", Callback = function() CommF:InvokeServer("Cousin", "Buy") end })
+Tabs.Shop:AddButton({ Title = "Reset Stats (300 Frags)", Callback = function() CommF:InvokeServer("BlackbeardReward", "Refund", "2") end })
+Tabs.Shop:AddButton({ Title = "Reroll Race (3000 Frags)", Callback = function() CommF:InvokeServer("BlackbeardReward", "Reroll", "1") end })
+
+-- Tab: Misc
+Tabs.Misc:AddSection("Utilities")
+Tabs.Misc:AddButton({
+    Title = "Redeem All Active Codes",
+    Callback = function()
+        local codeList = {
+            "LIGHTNINGABUSE",
+            "EASTEREXP",
+            "1LOSTADMIN",
+            "SUB2GAMERROBOT_EXP1",
+            "SUB2CAPTAINMAUI",
+            "Enyu_is_Pro",
+            "Starcodeheo",
+            "Sub2Fer999",
+            "Magicbus",
+            "JCWK",
+            "kittgaming",
+            "Bluxxy",
+            "Axiore",
+            "Sub2Daigrock",
+            "Sub2NoobMaster123",
+            "StrawHatMaine",
+            "TantaiGaming",
+            "TheGreatAce",
+            "Sub2OfficialNoobie",
+            "KITT_RESET",
+            "SUB2GAMERROBOT_RESET1",
+            "Sub2UncleKizaru",
+            "CHANDLER",
+            "fudd10_v2",
+            "Fudd10",
+            "Bignews"
+        }
+        
+        for _, code in ipairs(codeList) do
+            pcall(function()
+                CommF:InvokeServer("RedeemCode", code)
+            end)
+            task.wait(0.15)
+        end
+    end
+})
+Tabs.Misc:AddToggle("WalkOnWater", { Title = "Walk On Water", Default = false, Callback = function(v) _G.WalkOnWater = v end })
+
+Fluent:SelectTab(1)
