@@ -1,0 +1,384 @@
+-- ================================================
+-- LONGPD ONYX HUB - UI FIX EDITION
+-- Engine: Orion Library | Fast UI Load Guaranteed
+-- ================================================
+
+-- Safe UI Loader
+local OrionLib
+local success, _ = pcall(function()
+    OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/jensonhirst/Orion/main/source"))()
+end)
+
+if not success or not OrionLib then
+    OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+end
+
+local Window = OrionLib:MakeWindow({
+    Name = "LONGPD ONYX HUB | Max Level 2800",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "LongPD_Onyx_Hub",
+    IntroEnabled = false
+})
+
+-- Services & References (Không chặn luồng UI)
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualUser = game:GetService("VirtualUser")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- Dynamic Remote Getter
+local function GetCommF()
+    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+    if remotes and remotes:FindFirstChild("CommF_") then
+        return remotes.CommF_
+    end
+    local net = ReplicatedStorage:FindFirstChild("Net")
+    if net and net:FindFirstChild("CommF_") then
+        return net.CommF_
+    end
+    return nil
+end
+
+-- Config States
+_G.AutoFarmLevel = false
+_G.SelectWeapon = "Melee"
+_G.AutoFarmBone = false
+_G.AutoRandomBone = false
+_G.AutoSoulReaper = false
+_G.AutoCakePrince = false
+_G.AutoDoughKing = false
+_G.AutoYama = false
+_G.AutoTushita = false
+_G.AutoStatsMelee = false
+_G.AutoStatsDefense = false
+_G.AutoStatsSword = false
+_G.AutoStatsGun = false
+_G.AutoStatsFruit = false
+_G.WalkOnWater = false
+_G.TweenSpeed = 190
+
+-- Anti-AFK
+LocalPlayer.Idled:Connect(function()
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new())
+end)
+
+-- Platform Setup
+local Platform = Instance.new("Part")
+Platform.Size = Vector3.new(12, 1, 12)
+Platform.Anchored = true
+Platform.Transparency = 1
+Platform.CanCollide = true
+Platform.Parent = workspace
+
+local WaterPart = Instance.new("Part")
+WaterPart.Size = Vector3.new(800, 2, 800)
+WaterPart.Anchored = true
+WaterPart.Transparency = 0.8
+WaterPart.Color = Color3.fromRGB(0, 150, 255)
+WaterPart.CanCollide = false
+WaterPart.Parent = workspace
+
+-- Tween Engine
+local currentTween = nil
+local function StopTween()
+    if currentTween then
+        currentTween:Cancel()
+        currentTween = nil
+    end
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        Platform.CFrame = char.HumanoidRootPart.CFrame * CFrame.new(0, -3.5, 0)
+    end
+end
+
+local function TweenTo(targetCFrame)
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+        local hrp = char.HumanoidRootPart
+        local dist = (hrp.Position - targetCFrame.Position).Magnitude
+        
+        Platform.CFrame = hrp.CFrame * CFrame.new(0, -3.5, 0)
+        
+        if dist < 12 then 
+            hrp.CFrame = targetCFrame 
+            StopTween()
+            return 
+        end
+        
+        local tweenInfo = TweenInfo.new(dist / _G.TweenSpeed, Enum.EasingStyle.Linear)
+        if currentTween then currentTween:Cancel() end
+        currentTween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
+        currentTween:Play()
+    end
+end
+
+-- NoClip & Water Walk Loop
+RunService.Stepped:Connect(function()
+    local char = LocalPlayer.Character
+    if char then
+        for _, v in pairs(char:GetChildren()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
+        end
+        
+        if _G.WalkOnWater and char:FindFirstChild("HumanoidRootPart") then
+            WaterPart.CanCollide = true
+            WaterPart.CFrame = CFrame.new(char.HumanoidRootPart.Position.X, 0, char.HumanoidRootPart.Position.Z)
+        else
+            WaterPart.CanCollide = false
+            WaterPart.CFrame = CFrame.new(0, -2000, 0)
+        end
+    end
+end)
+
+-- Fast Attack
+local lastAttack = 0
+local function FastAttack()
+    if tick() - lastAttack >= 0.12 then
+        lastAttack = tick()
+        pcall(function()
+            local char = LocalPlayer.Character
+            if char then
+                local tool = char:FindFirstChildOfClass("Tool")
+                if tool then tool:Activate() end
+                VirtualUser:Button1Down(Vector2.new(500, 500))
+                task.wait(0.01)
+                VirtualUser:Button1Up(Vector2.new(500, 500))
+            end
+        end)
+    end
+end
+
+-- Bring Mob
+local function BringMob(mobName, targetCFrame)
+    pcall(function()
+        for _, v in pairs(workspace.Enemies:GetChildren()) do
+            if v.Name == mobName and v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                local hrp = v.HumanoidRootPart
+                if (hrp.Position - targetCFrame.Position).Magnitude <= 150 and (hrp.Position - targetCFrame.Position).Magnitude > 5 then
+                    hrp.Velocity = Vector3.new(0, 0, 0)
+                    hrp.CFrame = targetCFrame * CFrame.new(0, 0, -2)
+                    hrp.CanCollide = false
+                    v.Humanoid.WalkSpeed = 0
+                    v.Humanoid.JumpPower = 0
+                end
+            end
+        end
+    end)
+end
+
+-- Equip Weapon
+local function EquipWeapon(typeStr)
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("Humanoid") then return end
+    
+    local heldTool = char:FindFirstChildOfClass("Tool")
+    if heldTool then
+        if (typeStr == "Melee" and heldTool.ToolTip == "Melee") or
+           (typeStr == "Sword" and heldTool.ToolTip == "Sword") or
+           (typeStr == "Fruit" and (heldTool.ToolTip == "Blox Fruit" or heldTool.ToolTip == "Demon Fruit")) then
+            return
+        end
+    end
+
+    for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
+        if item:IsA("Tool") then
+            if (typeStr == "Melee" and item.ToolTip == "Melee") or
+               (typeStr == "Sword" and item.ToolTip == "Sword") or
+               (typeStr == "Fruit" and (item.ToolTip == "Blox Fruit" or item.ToolTip == "Demon Fruit")) then
+                char.Humanoid:EquipTool(item)
+                break
+            end
+        end
+    end
+end
+
+-- Quest Engine
+local function GetQuestData()
+    local realLvl = (LocalPlayer:FindFirstChild("Data") and LocalPlayer.Data:FindFirstChild("Level")) and LocalPlayer.Data.Level.Value or 1
+    local placeId = game.PlaceId
+    local lvl = realLvl
+    
+    if placeId == 2753915549 and lvl >= 700 then
+        return "CyborgQuest", 1, "Lab Subordinate", CFrame.new(-6140, 15, -5040), CFrame.new(-5780, 16, -4850)
+    elseif placeId == 4442272183 and lvl >= 1500 then
+        return "ForgottenQuest", 1, "Sea Soldier", CFrame.new(-3055, 240, -10145), CFrame.new(-3200, 240, -10000)
+    end
+    
+    if lvl < 10 then return "BanditQuest1", 1, "Bandit", CFrame.new(1059, 16, 1548), CFrame.new(1145, 17, 1634)
+    elseif lvl < 15 then return "JungleQuest", 1, "Monkey", CFrame.new(-1600, 36, 153), CFrame.new(-1620, 22, 140)
+    elseif lvl < 30 then return "JungleQuest", 2, "Gorilla", CFrame.new(-1600, 36, 153), CFrame.new(-1240, 6, -500)
+    elseif lvl < 40 then return "BuggyQuest1", 1, "Pirate", CFrame.new(-1140, 4, 3828), CFrame.new(-1215, 4, 3910)
+    elseif lvl < 60 then return "BuggyQuest1", 2, "Brute", CFrame.new(-1140, 4, 3828), CFrame.new(-1145, 14, 4300)
+    elseif lvl < 75 then return "DesertQuest", 1, "Desert Officer", CFrame.new(897, 6, 4388), CFrame.new(1570, 10, 4350)
+    elseif lvl < 90 then return "SnowQuest", 1, "Snow Bandit", CFrame.new(1385, 87, -1298), CFrame.new(1285, 105, -1330)
+    elseif lvl < 120 then return "MarineQuest2", 1, "Chief Petty Officer", CFrame.new(-5030, 29, 4325), CFrame.new(-4850, 20, 4360)
+    elseif lvl < 150 then return "SkyQuest", 1, "Sky Bandit", CFrame.new(-4840, 718, -2620), CFrame.new(-4975, 720, -2880)
+    elseif lvl < 190 then return "PrisonerQuest", 1, "Prisoner", CFrame.new(530, 2, 475), CFrame.new(490, 3, 580)
+    elseif lvl < 250 then return "ColosseumQuest", 1, "Toga Warrior", CFrame.new(-1580, 7, 2980), CFrame.new(-1800, 50, 2750)
+    elseif lvl < 300 then return "MagmaQuest", 1, "Military Soldier", CFrame.new(-5310, 12, 8515), CFrame.new(-5400, 11, 8530)
+    elseif lvl < 375 then return "FishmanQuest", 1, "Fishman Warrior", CFrame.new(61120, 18, 1560), CFrame.new(60800, 18, 1500)
+    elseif lvl < 450 then return "SkyQuest2", 1, "God's Guard", CFrame.new(-7900, 5600, -2280), CFrame.new(-7700, 5600, -2300)
+    elseif lvl < 700 then return "CyborgQuest", 1, "Lab Subordinate", CFrame.new(-6140, 15, -5040), CFrame.new(-5780, 16, -4850)
+    elseif lvl < 725 then return "Area1Quest", 1, "Raider", CFrame.new(-425, 73, 1835), CFrame.new(-750, 73, 2400)
+    elseif lvl < 775 then return "Area1Quest", 2, "Mercenary", CFrame.new(-425, 73, 1835), CFrame.new(-960, 73, 1400)
+    elseif lvl < 875 then return "Area2Quest", 1, "Swan Pirate", CFrame.new(915, 120, 1310), CFrame.new(880, 120, 1200)
+    elseif lvl < 950 then return "MarineQuest3", 1, "Marine Lieutenant", CFrame.new(-2440, 73, -3215), CFrame.new(-2800, 73, -3000)
+    elseif lvl < 1000 then return "ZombieQuest", 1, "Zombie", CFrame.new(-5495, 48, -795), CFrame.new(-5600, 48, -700)
+    elseif lvl < 1100 then return "SnowMountainQuest", 1, "Snow Trooper", CFrame.new(605, 400, -5370), CFrame.new(500, 400, -5500)
+    elseif lvl < 1250 then return "IceSideQuest", 1, "Lab Subordinate", CFrame.new(-6060, 16, -4905), CFrame.new(-5800, 16, -4800)
+    elseif lvl < 1350 then return "ShipQuest1", 1, "Ship Deckhand", CFrame.new(1030, 125, 32910), CFrame.new(1200, 125, 33000)
+    elseif lvl < 1425 then return "FrostQuest", 1, "Ice Warrior", CFrame.new(5660, 28, -6480), CFrame.new(5800, 28, -6300)
+    elseif lvl < 1500 then return "ForgottenQuest", 1, "Sea Soldier", CFrame.new(-3055, 240, -10145), CFrame.new(-3200, 240, -10000)
+    elseif lvl < 1575 then return "PiratePortQuest", 1, "Pirate Millionaire", CFrame.new(-290, 44, 5580), CFrame.new(-300, 44, 5300)
+    elseif lvl < 1700 then return "AmazonQuest", 1, "Female Islander", CFrame.new(5830, 52, -1105), CFrame.new(5700, 52, -900)
+    elseif lvl < 1800 then return "MarineTreeQuest", 1, "Marine Commodore", CFrame.new(2180, 29, -6740), CFrame.new(2400, 29, -6800)
+    elseif lvl < 1900 then return "DeepForestIslandQuest", 1, "Jungle Pirate", CFrame.new(-13230, 332, -7625), CFrame.new(-13400, 332, -7800)
+    elseif lvl < 2000 then return "DeepForestIsland2Quest", 1, "Horned Warrior", CFrame.new(-12680, 390, -9900), CFrame.new(-12500, 390, -9700)
+    elseif lvl < 2100 then return "HauntedQuest1", 1, "Reborn Skeleton", CFrame.new(-9480, 142, 5520), CFrame.new(-8800, 142, 5600)
+    elseif lvl < 2200 then return "HauntedQuest2", 1, "Demonic Soul", CFrame.new(-9480, 142, 5520), CFrame.new(-9500, 142, 5600)
+    elseif lvl < 2300 then return "IceCreamIslandQuest", 1, "Ice Cream Chef", CFrame.new(-820, 65, -10965), CFrame.new(-600, 65, -11000)
+    elseif lvl < 2400 then return "CakeQuest1", 1, "Cookie Crafter", CFrame.new(-2020, 37, -12025), CFrame.new(-2200, 37, -12000)
+    elseif lvl < 2550 then return "CakeQuest2", 1, "Baking Staff", CFrame.new(-1925, 37, -12850), CFrame.new(-1900, 37, -13000)
+    elseif lvl < 2675 then return "TikiQuest1", 1, "Isle Outlaw", CFrame.new(-16535, 55, -1725), CFrame.new(-16300, 55, -1600)
+    elseif lvl < 2750 then return "TikiQuest2", 2, "Island Boy", CFrame.new(-16535, 55, -1725), CFrame.new(-16600, 55, -1800)
+    else return "TikiQuest3", 3, "Sun-kissed Warrior", CFrame.new(-16535, 55, -1725), CFrame.new(-16200, 55, -1900)
+    end
+end
+
+-- Background Main Farm Loop
+local lastBoneBuy = 0
+local lastQuestTake = 0
+
+task.spawn(function()
+    while task.wait(0.1) do
+        pcall(function()
+            local char = LocalPlayer.Character
+            local CommF = GetCommF()
+            if not char or not char:FindFirstChild("HumanoidRootPart") or char.Humanoid.Health <= 0 then return end
+
+            if _G.AutoFarmLevel and CommF then
+                local qName, qNum, mName, npcCFrame, mobCFrame = GetQuestData()
+                local questUI = LocalPlayer.PlayerGui.Main:FindFirstChild("Quest")
+                
+                if not questUI or not questUI.Visible or not string.find(questUI.Container.QuestTitle.Title.Text, mName) then
+                    TweenTo(npcCFrame)
+                    if (char.HumanoidRootPart.Position - npcCFrame.Position).Magnitude < 15 and (tick() - lastQuestTake >= 1) then
+                        lastQuestTake = tick()
+                        CommF:InvokeServer("StartQuest", qName, qNum)
+                    end
+                else
+                    EquipWeapon(_G.SelectWeapon)
+                    local mob = workspace.Enemies:FindFirstChild(mName)
+                    if mob and mob:FindFirstChild("HumanoidRootPart") and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                        TweenTo(mob.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0))
+                        BringMob(mName, mob.HumanoidRootPart.CFrame)
+                        FastAttack()
+                    else
+                        TweenTo(mobCFrame)
+                    end
+                end
+            end
+
+            if _G.AutoFarmBone then
+                EquipWeapon(_G.SelectWeapon)
+                local boneMob = nil
+                for _, mob in pairs(workspace.Enemies:GetChildren()) do
+                    if (mob.Name == "Reborn Skeleton" or mob.Name == "Living Zombie" or mob.Name == "Demonic Soul" or mob.Name == "Possessed Mummy") 
+                    and mob:FindFirstChild("HumanoidRootPart") and mob.Humanoid.Health > 0 then
+                        boneMob = mob
+                        break
+                    end
+                end
+                if boneMob then
+                    TweenTo(boneMob.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0))
+                    BringMob(boneMob.Name, boneMob.HumanoidRootPart.CFrame)
+                    FastAttack()
+                else
+                    TweenTo(CFrame.new(-9500, 170, 6000))
+                end
+            end
+
+            if _G.AutoRandomBone and CommF and (tick() - lastBoneBuy >= 3) then
+                lastBoneBuy = tick()
+                CommF:InvokeServer("Bones", "Buy", 1, 1)
+            end
+        end)
+    end
+end)
+
+-- Auto Stats Loop
+task.spawn(function()
+    while task.wait(0.5) do
+        pcall(function()
+            local CommF = GetCommF()
+            if CommF then
+                if _G.AutoStatsMelee then CommF:InvokeServer("AddPoint", "Melee", 3) end
+                if _G.AutoStatsDefense then CommF:InvokeServer("AddPoint", "Defense", 3) end
+                if _G.AutoStatsSword then CommF:InvokeServer("AddPoint", "Sword", 3) end
+                if _G.AutoStatsGun then CommF:InvokeServer("AddPoint", "Gun", 3) end
+                if _G.AutoStatsFruit then CommF:InvokeServer("AddPoint", "Demon Fruit", 3) end
+            end
+        end)
+    end
+end)
+
+-- Building UI Tabs
+local TabStatus = Window:MakeTab({Name = "Status Check", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local TabMain = Window:MakeTab({Name = "Main Farm", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local TabHaunted = Window:MakeTab({Name = "Haunted Castle", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local TabStats = Window:MakeTab({Name = "Auto Stats", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local TabTeleport = Window:MakeTab({Name = "Teleport", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local TabMisc = Window:MakeTab({Name = "Misc Settings", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+
+TabStatus:AddSection({Name = "Character Status"})
+local LvlLabel = TabStatus:AddLabel("Current Level: Loading...")
+
+task.spawn(function()
+    while task.wait(1.5) do
+        pcall(function()
+            local lvl = (LocalPlayer:FindFirstChild("Data") and LocalPlayer.Data:FindFirstChild("Level")) and tostring(LocalPlayer.Data.Level.Value) or "1"
+            LvlLabel:Set("Current Level: " .. lvl)
+        end)
+    end
+end)
+
+TabMain:AddSection({Name = "Farm Level Auto Quest"})
+TabMain:AddToggle({
+    Name = "Auto Farm Level (1 - 2800)",
+    Default = false,
+    Callback = function(v) 
+        _G.AutoFarmLevel = v 
+        if not v then StopTween() end
+    end
+})
+TabMain:AddDropdown({
+    Name = "Select Weapon",
+    Default = "Melee",
+    Options = {"Melee", "Sword", "Fruit"},
+    Callback = function(v) _G.SelectWeapon = v end
+})
+
+TabHaunted:AddSection({Name = "Bones"})
+TabHaunted:AddToggle({ Name = "Auto Farm Bones", Default = false, Callback = function(v) _G.AutoFarmBone = v if not v then StopTween() end end })
+TabHaunted:AddToggle({ Name = "Auto Random Bone", Default = false, Callback = function(v) _G.AutoRandomBone = v end })
+
+TabStats:AddSection({Name = "Upgrade Points"})
+TabStats:AddToggle({ Name = "Auto Melee", Default = false, Callback = function(v) _G.AutoStatsMelee = v end })
+TabStats:AddToggle({ Name = "Auto Defense", Default = false, Callback = function(v) _G.AutoStatsDefense = v end })
+TabStats:AddToggle({ Name = "Auto Sword", Default = false, Callback = function(v) _G.AutoStatsSword = v end })
+TabStats:AddToggle({ Name = "Auto Fruit", Default = false, Callback = function(v) _G.AutoStatsFruit = v end })
+
+TabTeleport:AddSection({Name = "World Travel"})
+TabTeleport:AddButton({ Name = "Travel Sea 1", Callback = function() local c = GetCommF() if c then c:InvokeServer("TravelMain") end end })
+TabTeleport:AddButton({ Name = "Travel Sea 2", Callback = function() local c = GetCommF() if c then c:InvokeServer("TravelDressrosa") end end })
+TabTeleport:AddButton({ Name = "Travel Sea 3", Callback = function() local c = GetCommF() if c then c:InvokeServer("TravelZou") end end })
+
+TabMisc:AddSection({Name = "Utilities"})
+TabMisc:AddToggle({ Name = "Walk On Water", Default = false, Callback = function(v) _G.WalkOnWater = v end })
+
+OrionLib:Init()
